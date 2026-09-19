@@ -1,0 +1,23 @@
+.deps/
+build/
+build-host/
+BookReader.elf
+BookReader.nacp
+BookReader.nro
+BookReader.zip
+BookReader-source.zip
+*.map
+sdcard/
+
+*.nro
+*.elf
+*.nacp
+*.zip
+.DS_Store
+verification/*.bmp
+verification/v1-source/
+verification/*.log
+verification/*.diff
+screenshots/*.bmp
+switch/
+switch 2/

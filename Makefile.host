@@ -1,0 +1,35 @@
+CXX := clang++
+MUPDF ?= .deps/mupdf-1.17.0-source
+PKG_CONFIG ?= pkg-config
+CPPFLAGS := -Isource -I$(MUPDF)/include $(shell $(PKG_CONFIG) --cflags sdl2 freetype2)
+CXXFLAGS := -std=c++17 -O1 -g -Wall -Wextra -Wpedantic -pthread
+LDLIBS := $(MUPDF)/build/release/libmupdf.a $(MUPDF)/build/release/libmupdf-third.a $(shell $(PKG_CONFIG) --libs sdl2 freetype2) -lz -lm -pthread
+SOURCES := $(wildcard source/*.cpp source/*/*.cpp)
+OBJECTS := $(patsubst source/%.cpp,build-host/%.o,$(SOURCES))
+.PHONY: all test clean
+all: build-host/BookReader
+build-host/BookReader: $(OBJECTS)
+	$(CXX) $(CXXFLAGS) $^ $(LDLIBS) -o $@
+build-host/%.o: source/%.cpp
+	@mkdir -p $(dir $@)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -c $< -o $@
+CORE := $(filter-out build-host/main.o build-host/app/App.o build-host/ui/LibraryScreen.o build-host/ui/ReaderScreen.o build-host/ui/SettingsScreen.o,$(OBJECTS))
+test: build-host/tests
+	./build-host/tests
+build-host/tests: tests/test_main.cpp $(CORE)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ $(LDLIBS) -o $@
+clean:
+	$(RM) -r build-host
+-include $(OBJECTS:.o=.d)
+
+.PHONY: gui-test
+gui-test: build-host/gui-tests
+	./build-host/gui-tests
+build-host/gui-tests: tests/gui_smoke.cpp $(filter-out build-host/main.o,$(OBJECTS))
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ $(LDLIBS) -o $@
+
+.PHONY: v2-test
+v2-test: build-host/v2-tests
+	./build-host/v2-tests
+build-host/v2-tests: tests/v2_ui.cpp $(filter-out build-host/main.o,$(OBJECTS))
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ $(LDLIBS) -o $@
