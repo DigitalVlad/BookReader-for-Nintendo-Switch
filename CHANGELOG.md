@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Opt-in Wi-Fi web upload server on port 8080 (`−` on the Home screen).
+- Streams PDF/EPUB/TXT/FB2/HTML/CBZ/MD to `/switch/BookReader/books/`,
+  validates extension and file signature, sanitizes names, enforces
+  per-format limits and rescans the library after each upload.
+- `+` remains Settings; `−` on other screens still opens Settings.
+- English/Russian UI strings for the upload panel and notifications.
+
 ## 0.2.0 — 2026-09-19
 
 - English / Русский UI with centralized UTF-8 translations, localized dialogs
