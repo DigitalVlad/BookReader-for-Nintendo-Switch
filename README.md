@@ -36,6 +36,26 @@ devkitPro MuPDF port. It does not use Nintendo SDK APIs or require a network con
 - Adjustable font size, line spacing, margins, alignment, app dimming, and font family
 - EPUB cover extraction and first-page thumbnails for other formats
 - Bounded memory and disk caches designed for Switch homebrew constraints
+- **Wi-Fi upload** from a phone or PC browser (press `−` in the home screen)
+
+## Web upload
+
+Press **`−`** on the home screen to start a small HTTP server on port **8080**.
+Open the address shown on screen from a phone or PC connected to the **same
+Wi-Fi network**:
+
+```
+http://<Switch IP>:8080
+```
+
+The upload form accepts the formats BookReader can open: **PDF, EPUB, TXT, FB2,
+HTML/HTM, CBZ and MD**. Files are streamed to disk (never loaded fully into RAM),
+checked by extension and file signature, and saved to
+`/switch/BookReader/books/`. The library rescans automatically after each upload.
+Press **`−`** again to stop the server.
+
+The server has no password and is meant for a trusted local network. Stop it
+when you are done.
 
 ## Supported formats
 
@@ -143,7 +163,7 @@ consumes the remaining contact sequence to avoid an accidental tap.
 | L / R | Previous / next chapter |
 | ZL / ZR | Jump backward / forward 10 pages |
 | Left or Right Stick | Scroll or pan a zoomed page |
-| − | Open or close Settings |
+| − | Home: start / stop the web upload server; other screens: open Settings |
 | + | Open or close Settings |
 
 Directions are transformed in portrait mode so navigation remains aligned with the

@@ -41,7 +41,7 @@ int main() {
     std::thread driver([] {
         pause(1200);
         key(SDLK_x);
-        key(SDLK_MINUS);
+        key(SDLK_PLUS);
         mouse(SDL_MOUSEBUTTONDOWN, 900, 420); // brightness slider
         mouse(SDL_MOUSEBUTTONUP, 900, 420);
         key(SDLK_ESCAPE);

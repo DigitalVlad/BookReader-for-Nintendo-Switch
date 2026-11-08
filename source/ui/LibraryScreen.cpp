@@ -1,4 +1,5 @@
 #include "app/App.hpp"
+#include "net/WebUploadServer.hpp"
 #include "utils/Files.hpp"
 #include <ctime>
 namespace br {
@@ -7,6 +8,11 @@ void App::drawLibrary() {
     u.text(tr("BOOK READER"), 40, 22, 38, u.colors.text);
     if (screen_ == Screen::Home) {
         u.text(tr("Your library. Wherever you are."), 42, 72, 22, u.colors.muted, width() - 84);
+        u.text(tr("Minus: web upload - Plus: settings"), width() - 360, 24, 16, u.colors.muted,
+               320);
+        if (webActive_)
+            u.text(tr("Web upload") + ": " + (web_ ? web_->url() : ""), 42, 102, 18,
+                   u.colors.accent, width() - 84);
         u.button({40, 134, 510, 64}, tr("Continue Reading"), [this] {
             if (!config_.lastBook.empty())
                 openBook(config_.lastBook);
@@ -129,8 +135,10 @@ void App::drawLibrary() {
         listStart_ =
             std::min(std::max(0, int(filtered_.size()) - listRows()), listStart_ + listRows());
     });
-    u.text(std::to_string(filtered_.size()) + " " + tr("books") + "  " + query_, 416, height() - 72,
-           23, u.colors.muted, width() - 456);
+    std::string footer = std::to_string(filtered_.size()) + " " + tr("books") + "  " + query_;
+    if (webActive_)
+        footer += "  |  " + tr("Web ON");
+    u.text(footer, 416, height() - 72, 23, u.colors.muted, width() - 456);
 }
 void App::drawContext() {
     auto& u = *ui_;

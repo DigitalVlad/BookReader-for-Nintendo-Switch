@@ -1,4 +1,5 @@
 #include "app/App.hpp"
+#include "net/WebUploadServer.hpp"
 #include "storage/Library.hpp"
 #include "utils/Files.hpp"
 #include <cmath>
@@ -21,6 +22,10 @@ static void onApplet(AppletHookType type, void*) {
 App::App() : config_(rootPath() + "/config/state.ini") {
 }
 App::~App() {
+    if (web_) {
+        web_->stop();
+        web_.reset();
+    }
     if (worker_)
         worker_->stop();
     cancelScan_ = true;
@@ -166,6 +171,7 @@ int App::run() {
                 message_ = e.what();
             }
         }
+        pollWebServer();
         collectView();
         input(now, dt);
         if (std::abs(inertia_) > 8) {
@@ -490,6 +496,74 @@ void App::showSettings() {
     setScreen(Screen::Settings);
     settingsDirty_ = false;
 }
+void App::toggleWebUpload() {
+    if (webActive_) {
+        if (web_)
+            web_->stop();
+        web_.reset();
+        webActive_ = false;
+        showWebHelp_ = false;
+        message_ = tr("Web upload stopped");
+        return;
+    }
+    web_ = std::make_unique<WebUploadServer>(rootPath() + "/books");
+    std::string error;
+    if (!web_->start(error)) {
+        web_.reset();
+        message_ = error.empty() ? tr("Web server could not start") : error;
+        return;
+    }
+    webActive_ = true;
+    showWebHelp_ = true;
+    message_.clear();
+}
+void App::pollWebServer() {
+    if (webActive_ && web_) {
+        std::string summary;
+        if (web_->takeUpload(summary)) {
+            message_ = tr("Uploaded") + ": " + summary;
+            if (scan_.valid())
+                rescanPending_ = true;
+            else
+                scanLibraryAsync();
+        }
+        if (!web_->active()) {
+            web_.reset();
+            webActive_ = false;
+            showWebHelp_ = false;
+        }
+    }
+    if (rescanPending_ && !scan_.valid()) {
+        rescanPending_ = false;
+        scanLibraryAsync();
+    }
+}
+void App::drawWebStatus() {
+    if (!showWebHelp_)
+        return;
+    ui_->buttons.clear();
+    SDL_Rect panel{width() / 2 - 340, height() / 2 - 190, 680, 380};
+    if (panel.w > width() - 48) {
+        panel.w = width() - 48;
+        panel.x = 24;
+    }
+    ui_->rect(panel, ui_->colors.panel);
+    ui_->text(tr("Web upload active"), panel.x + 30, panel.y + 24, 30, ui_->colors.text,
+              panel.w - 60);
+    ui_->text(web_ ? web_->url() : "", panel.x + 30, panel.y + 78, 28, ui_->colors.accent,
+              panel.w - 60);
+    ui_->text(tr("Open this address on your phone or PC"), panel.x + 30, panel.y + 126, 20,
+              ui_->colors.text, panel.w - 60);
+    ui_->text(tr("Same Wi-Fi network"), panel.x + 30, panel.y + 156, 20, ui_->colors.muted,
+              panel.w - 60);
+    ui_->text(tr("Formats: PDF, EPUB, TXT, FB2, HTML, CBZ, MD"), panel.x + 30, panel.y + 196, 18,
+              ui_->colors.muted, panel.w - 60);
+    ui_->text(tr("Press - to stop"), panel.x + 30, panel.y + 230, 18, ui_->colors.muted,
+              panel.w - 60);
+    ui_->button({panel.x + panel.w - 200, panel.y + panel.h - 76, 160, 56}, tr("OK"),
+                [this] { showWebHelp_ = false; });
+    ui_->focus(0);
+}
 void App::applySettings() {
     settings_.clamp();
     config_.settings.language = settings_.language;
@@ -567,6 +641,22 @@ void App::activate() {
     }
 }
 void App::key(SDL_Keycode k) {
+    if (showWebHelp_) {
+        if (k == SDLK_MINUS) {
+            toggleWebUpload();
+            return;
+        }
+        if (k == SDLK_RETURN || k == SDLK_ESCAPE) {
+            showWebHelp_ = false;
+            return;
+        }
+        if (k == SDLK_PLUS) {
+            showWebHelp_ = false;
+            showSettings();
+            return;
+        }
+        return;
+    }
     if (k == SDLK_ESCAPE) {
         back();
         return;
@@ -588,6 +678,13 @@ void App::key(SDL_Keycode k) {
         return;
     }
     if (k == SDLK_MINUS) {
+        if (screen_ == Screen::Home)
+            toggleWebUpload();
+        else
+            showSettings();
+        return;
+    }
+    if (k == SDLK_PLUS) {
         showSettings();
         return;
     }
@@ -663,6 +760,18 @@ void App::input(double now, float dt) {
 #ifdef __SWITCH__
     padUpdate(&pad);
     u64 down = padGetButtonsDown(&pad), held = padGetButtons(&pad);
+    if (showWebHelp_) {
+        if (down & HidNpadButton_Minus)
+            toggleWebUpload();
+        else if (down & (HidNpadButton_A | HidNpadButton_B))
+            showWebHelp_ = false;
+        else if (down & HidNpadButton_Plus) {
+            showWebHelp_ = false;
+            showSettings();
+        }
+        down = 0;
+        held = 0;
+    }
     if (down & HidNpadButton_A)
         activate();
     if (down & HidNpadButton_B)
@@ -673,8 +782,12 @@ void App::input(double now, float dt) {
     }
     if (down & HidNpadButton_Y)
         toggleFavorite(screen_ == Screen::Reader ? activePath_ : contextPath_);
-    if (down & HidNpadButton_Minus)
-        showSettings();
+    if (down & HidNpadButton_Minus) {
+        if (screen_ == Screen::Home)
+            toggleWebUpload();
+        else
+            showSettings();
+    }
     if (down & HidNpadButton_Plus)
         showSettings();
     u64 directions =
@@ -882,6 +995,7 @@ void App::draw() {
     }
     if (screen_ != Screen::Reader || overlay_)
         ui_->focus(focus_);
+    drawWebStatus();
     if (busy_) {
         ui_->rect({width() - 230, 8, 220, 48}, ui_->colors.panel);
         ui_->text(tr("Loading..."), width() - 216, 15, 24, ui_->colors.text, 200);

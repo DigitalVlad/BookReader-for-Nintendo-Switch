@@ -6,7 +6,9 @@
 #include "ui/OrientationTransform.hpp"
 #include <future>
 #include <map>
+#include <memory>
 namespace br {
+class WebUploadServer;
 class App {
 #ifndef __SWITCH__
     friend class AppTest;
@@ -22,6 +24,8 @@ class App {
     SDL_Texture* nextTexture_ = nullptr;
     std::unique_ptr<Components> ui_;
     std::unique_ptr<Worker> worker_;
+    std::unique_ptr<WebUploadServer> web_;
+    bool webActive_ = false, showWebHelp_ = false, rescanPending_ = false;
     std::vector<FontSource> fonts_;
     Config config_;
     Settings settings_;
@@ -67,6 +71,9 @@ class App {
     void drawContents();
     void drawSearch();
     void drawContext();
+    void drawWebStatus();
+    void toggleWebUpload();
+    void pollWebServer();
     void collectView();
     void savePosition(bool force);
     void updateList();

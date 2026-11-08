@@ -100,7 +100,20 @@ std::string tr(const std::string& key, Language language) {
         {"No book is open", "Книга не открыта"},
         {"Cannot create BookReader folders", "Не удалось создать папки BookReader"},
         {"No Cyrillic font. Add a TTF to fonts/",
-         "Нет кириллического шрифта. Добавьте TTF в fonts/"}};
+         "Нет кириллического шрифта. Добавьте TTF в fonts/"},
+        {"Web upload", "Загрузка по Wi-Fi"},
+        {"Web upload active", "Загрузка по Wi-Fi включена"},
+        {"Open this address on your phone or PC", "Откройте этот адрес на телефоне или ПК"},
+        {"Same Wi-Fi network", "Та же сеть Wi-Fi"},
+        {"Formats: PDF, EPUB, TXT, FB2, HTML, CBZ, MD", "Форматы: PDF, EPUB, TXT, FB2, HTML, CBZ, MD"},
+        {"Press - to stop", "Нажмите −, чтобы остановить"},
+        {"Minus: web upload - Plus: settings", "−: загрузка по Wi-Fi · +: настройки"},
+        {"Web ON", "Wi-Fi вкл"},
+        {"Web upload stopped", "Загрузка по Wi-Fi остановлена"},
+        {"Web server could not start", "Не удалось запустить сервер"},
+        {"Connect to Wi-Fi first", "Сначала подключитесь к Wi-Fi"},
+        {"Port 8080 is already in use", "Порт 8080 уже занят"},
+        {"Uploaded", "Загружено"}};
     if (language == Language::Russian) {
         auto i = ru.find(key);
         if (i != ru.end())
@@ -110,6 +123,9 @@ std::string tr(const std::string& key, Language language) {
 }
 std::string localizedError(const std::string& message, Language language) {
     if (language == Language::English)
+        return message;
+    auto uploaded = tr("Uploaded", language) + ": ";
+    if (message.rfind(uploaded, 0) == 0)
         return message;
     auto exact = tr(message, language);
     if (exact != message)
